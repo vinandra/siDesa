@@ -27,6 +27,10 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
+        ], [
+            'email.required' => 'Email wajib diisi',
+            'email.email' => 'Format tidak valid',
+            'password.required' => 'Password wajib diisi',
         ]);
  
         if (Auth::attempt($credentials)) {
@@ -35,9 +39,11 @@ class AuthController extends Controller
             $userStatus = Auth::user()->status;
 
             if ($userStatus == 'submitted') {
-                return back()->withErrors(['email' => 'Akun Anda sedang dalam proses verifikasi.']);
+                $this->_logout($request);
+                return back()->withErrors(['email' => 'Akun Anda sedang dalam proses verifikasi']);
             } else if ($userStatus == 'rejected') {
-                return back()->witwithErrorsh(['eamil' => 'Akun Anda ditolak. Silakan hubungi administrator.']);
+                $this->_logout($request);
+                return back()->witwithErrorsh(['eamil' => 'Akun Anda ditolak. Silakan hubungi administrator']);
             }
  
             return redirect()->intended('dashboard');
@@ -78,16 +84,22 @@ class AuthController extends Controller
         return redirect('/')->with('success', 'Registrasi berhasil! Silakan tunggu proses verifikasi akun Anda.');
     }
 
+    public function _logout(Request $request)
+    {
+        Auth::logout();
+
+        $request->session()->invalidate();
+
+        $request->session()->regenerateToken();
+    }
+
     public function logout(Request $request)
     {
         if(!Auth::check()) {
            return redirect('/');
         }
-        Auth::logout();
-    
-        $request->session()->invalidate();
-    
-        $request->session()->regenerateToken();
+
+        $this->_logout($request);
     
         return redirect('/');
     }
