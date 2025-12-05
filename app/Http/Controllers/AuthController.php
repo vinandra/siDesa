@@ -43,7 +43,7 @@ class AuthController extends Controller
                 return back()->withErrors(['email' => 'Akun Anda sedang dalam proses verifikasi']);
             } else if ($userStatus == 'rejected') {
                 $this->_logout($request);
-                return back()->witwithErrorsh(['eamil' => 'Akun Anda ditolak. Silakan hubungi administrator']);
+                return back()->withErrors(['eamil' => 'Akun Anda ditolak. Silakan hubungi administrator']);
             }
  
             return redirect()->intended('dashboard');
