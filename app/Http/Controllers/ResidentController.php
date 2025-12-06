@@ -10,7 +10,7 @@ class ResidentController extends Controller
 {
     public function index()
     {   
-        $residents = Resident::all();
+        $residents = Resident::with('user')->get();
 
         return view('pages.residents.index', ['residents' => $residents]);
     }
