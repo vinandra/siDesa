@@ -41,7 +41,7 @@
                             <tbody>
                                 @foreach ($residents as $resident)
                                     <tr>
-                                        <td>{{ $loop->iteration }}</td>
+                                        <td>{{ $loop->iteration + ($residents->firstItem() - 1) }}</td>
                                         <td>{{ $resident->nik }}</td>
                                         <td>{{ $resident->name }}</td>
                                         <td>{{ $resident->gender }}</td>
@@ -68,12 +68,12 @@
                                                         data-bs-target="#detailAccount-{{ $resident->id }}">
                                                         lihat Akun
                                                     </button>
+                                                    @include('pages.residents.detail-account')
                                                 @endif
                                             </div>
                                         </td>
                                     </tr>
                                     @include('pages.residents.confirmation-delete')
-                                    @include('pages.residents.detail-account')
                                 @endforeach
 
                             </tbody>
@@ -81,6 +81,11 @@
 
                     </table>
                 </div>
+                @if ($residents->lastPage() > 1)
+                    <div class="card-footer">
+                        {{ $residents->links('pagination::bootstrap-5') }}
+                    </div>
+                @endif
             </div>
         </div>
     </div>
