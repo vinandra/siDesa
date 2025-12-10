@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Complaint;
 use Faker\Provider\Company;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
@@ -12,7 +13,10 @@ class ComplaintController extends Controller
 {
     public function index()
     {
-        $complaints = Complaint::where('resident_id', Auth::user()->resident->id)->paginate(5);
+        $residentId = Auth::user()->resident->id ?? null;
+        $complaints = Complaint::when(Auth::user()->role_id == 2, function ($query) use ($residentId) {
+            $query->where('resident_id', $residentId);
+        })->paginate(5);
 
         return view('pages.complaint.index', compact(
             'complaints',
@@ -21,6 +25,12 @@ class ComplaintController extends Controller
 
     public function create()
     {
+        $resident = Auth::user()->resident;
+
+        if (!$resident) {
+            return redirect('/complaint')->with('error', 'akun anda belum terhubung dengan data penduduk manapun');
+        }
+
         return view('pages.complaint.create');
     }
 
@@ -32,8 +42,15 @@ class ComplaintController extends Controller
             'photo_proof' => ['nullable', 'image', 'mimes:png,jpg, jpeg', 'max:2048']
         ]);
 
+        $resident = Auth::user()->resident;
+
+        if (!$resident) {
+            return redirect('/complaint')->with('error', 'akun anda belum terhubung dengan data penduduk manapun');
+        }
+
+
         $complaint = new Complaint();
-        $complaint->resident_id = Auth::user()->resident->id;
+        $complaint->resident_id = $resident->id;
         $complaint->title = $request->input('title');
         $complaint->content = $request->input('content');
 
@@ -49,6 +66,12 @@ class ComplaintController extends Controller
 
     public function edit($id)
     {   
+        $resident = Auth::user()->resident;
+
+        if (!$resident) {
+            return redirect('/complaint')->with('error', 'akun anda belum terhubung dengan data penduduk manapun');
+        }
+
         $complaint = Complaint::findOrFail($id);
 
         return view('pages.complaint.edit', compact('complaint'));
@@ -62,8 +85,20 @@ class ComplaintController extends Controller
             'photo_proof' => ['nullable', 'image', 'mimes:png,jpg, jpeg', 'max:2048']
         ]);
 
+        $resident = Auth::user()->resident;
+
+        if (!$resident) {
+            return redirect('/complaint')->with('error', 'akun anda belum terhubung dengan data penduduk manapun');
+        }
+
         $complaint = Complaint::FindOrFail($id);
-        $complaint->resident_id = Auth::user()->resident->id;
+
+        if($complaint->status != 'new')
+        {
+           return redirect('/complaint')->with('error', "gagal mengubah aduan, status aduan anda saat ini adalah $complaint->status.");
+        }
+
+        $complaint->resident_id = $resident->id;
         $complaint->title = $request->input('title');
         $complaint->content = $request->input('content');
 
@@ -82,9 +117,40 @@ class ComplaintController extends Controller
 
     public function destroy($id)
     {
-         $complaint = Complaint::FindOrFail($id);
-         $complaint->delete();
+        $resident = Auth::user()->resident;
+
+        if (!$resident) {
+            return redirect('/complaint')->with('error', 'akun anda belum terhubung dengan data penduduk manapun');
+        }
+
+        $complaint = Complaint::FindOrFail($id);
+
+        if($complaint->status != 'new')
+        {
+            return redirect('/complaint')->with('error', "gagal mengubah aduan, status aduan anda saat ini adalah $complaint->status.");
+        }
+
+        $complaint->delete();
 
         return redirect('/complaint')->with('success', 'Berhasil menghapus aduan');
+    }
+
+    public function update_status(Request $request, $id)
+    {
+        $request->validate([
+            'status' => ['required', Rule::in(['new', 'processing', 'completed'])]
+        ]);
+
+        $resident = Auth::user()->resident;
+        if (Auth::user()->role_id ==2 && !$resident) {
+            return redirect('/complaint')->with('error', 'akun anda belum terhubung dengan data penduduk manapun');
+        }
+
+        $complaint = Complaint::FindOrFail($id);
+        $complaint->status = $request->input('status');
+
+        $complaint->save();
+
+        return redirect('/complaint')->with('success', 'Berhasil mengubah status');
     }
 }
