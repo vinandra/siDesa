@@ -3,7 +3,8 @@
 @section('content')
     <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">{{ auth()->user()->role_id == 2 ? 'Aduan Warga' : 'Aduan' }}</h1>
+        <h1 class="h3 mb-0 text-gray-800">
+            {{ auth()->user()->role_id == \App\Models\Role::ROLE_ADMIN ? 'Aduan Warga' : 'Aduan' }}</h1>
         @if (auth()->user()->resident)
             <a href="/complaint/create" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i
                     class="fas fa-plus fa-sm text-white-50"></i>Buat aduan</a>
@@ -35,6 +36,9 @@
                         <thead>
                             <tr>
                                 <th>No</th>
+                                @if (auth()->user()->role_id == \App\Models\Role::ROLE_ADMIN)
+                                    <th>Nama Penduduk</th>
+                                @endif
                                 <th>Judul</th>
                                 <th>Isi aduan</th>
                                 <th>Status</th>
@@ -56,9 +60,14 @@
                                 @foreach ($complaints as $item)
                                     <tr>
                                         <td>{{ $loop->iteration + ($complaints->firstItem() - 1) }}</td>
+                                        @if (auth()->user()->role_id == \App\Models\Role::ROLE_ADMIN)
+                                            <td>{{ $item->resident->name }}</td>
+                                        @endif
                                         <td>{{ $item->title }}</td>
                                         <td>{!! wordwrap($item->content, 50, "<br>\n") !!}</td>
-                                        <td>{{ $item->status_label }}</td>
+                                        <td><span
+                                                class="badge badge-{{ $item->status_color }}">{{ $item->status_label }}</span>
+                                        </td>
                                         <td>
                                             @if (isset($item->photo_proof))
                                                 @php
@@ -74,7 +83,7 @@
                                         </td>
                                         <td>{{ $item->report_date_label }}</td>
                                         <td>
-                                            @if (auth()->user()->role_id == 2 && isset(auth()->user()->resident) && $item->status == 'new')
+                                            @if (auth()->user()->role_id == \App\Models\Role::ROLE_USER && isset(auth()->user()->resident) && $item->status == 'new')
                                                 <div class="d-flex gap-2 align-item-center" style="gap: 10px;">
                                                     <a href="/complaint/{{ $item->id }}"
                                                         class="d-inline-block btn btn-sm btn-warning">
@@ -86,7 +95,7 @@
                                                         <i class="fas fa-eraser"></i>
                                                     </button>
                                                 </div>
-                                            @elseif (auth()->user()->role_id == 1)
+                                            @elseif (auth()->user()->role_id == \App\Models\Role::ROLE_ADMIN)
                                                 <div>
                                                     <form id="formChangeStatus-{{ $item->id }}"
                                                         action="/complaint/update-status/{{ $item->id }}"

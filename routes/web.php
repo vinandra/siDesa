@@ -23,6 +23,23 @@ Route::get('/dashboard', function () {
     return view('pages.dashboard');
 })->middleware('role:Admin,User');
 
+Route::get('/notifications', function () {
+    return view('pages.notifications');
+})->middleware('role:Admin,User');
+
+Route::put('/notification/{id}/read', function ($id) {
+    $notification = \Illuminate\Support\Facades\DB::table('notifications')->where('id', $id);
+    $notification->update([
+        'read_at' => \Illuminate\Support\Facades\DB::raw('CURRENT_TIMESTAMP'),
+    ]);
+
+    $dataArray = json_decode($notification->firstOrFail()->data, true);
+    if (isset($dataArray['complaint_id'])) {
+        return redirect('/complaint');
+    }
+
+    return back();
+})->middleware('role:Admin,User');
 
 Route::get('/resident', [ResidentController::class, 'index'])->middleware('role:Admin');
 Route::get('/resident/create', [ResidentController::class, 'create'])->middleware('role:Admin');

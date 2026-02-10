@@ -2,19 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Complaint;
 use Faker\Provider\Company;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Notifications\ComplaintsStatusChanged;
 
 class ComplaintController extends Controller
 {
     public function index()
     {
         $residentId = Auth::user()->resident->id ?? null;
-        $complaints = Complaint::when(Auth::user()->role_id == 2, function ($query) use ($residentId) {
+        $complaints = Complaint::when(Auth::user()->role_id == \App\Models\Role::ROLE_USER, function ($query) use ($residentId) {
             $query->where('resident_id', $residentId);
         })->paginate(5);
 
@@ -147,9 +149,15 @@ class ComplaintController extends Controller
         }
 
         $complaint = Complaint::FindOrFail($id);
+        $oldStatus = $complaint->status_label;
         $complaint->status = $request->input('status');
-
         $complaint->save();
+
+        $newStatus = $complaint->status_label;
+
+        User::where('id', $complaint->resident->user_id)
+            ->firstOrFail()
+            ->notify(new ComplaintsStatusChanged($complaint, $oldStatus, $newStatus));
 
         return redirect('/complaint')->with('success', 'Berhasil mengubah status');
     }
